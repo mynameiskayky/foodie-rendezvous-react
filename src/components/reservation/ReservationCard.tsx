@@ -90,7 +90,6 @@ const ReservationCard = ({ reservation, onCancel }: ReservationCardProps) => {
               variant="outline" 
               className="w-full text-restaurant-primary border-restaurant-primary hover:bg-restaurant-primary hover:text-white"
               onClick={() => setShowCancelDialog(true)}
-              disabled={reservation.status === 'canceled'}
             >
               Cancelar Reserva
             </Button>

@@ -1,4 +1,3 @@
-
 import { Reservation } from '@/types';
 
 // Dados simulados de reservas
@@ -13,6 +12,9 @@ const mockReservations: Reservation[] = [
     partySize: 2,
     status: 'confirmed',
     notes: 'Mesa próxima à janela, por favor',
+    customerName: 'João Silva',
+    customerEmail: 'joao.silva@example.com',
+    customerPhone: '(11) 98765-4321',
   },
   {
     id: '102',
@@ -23,6 +25,9 @@ const mockReservations: Reservation[] = [
     time: '20:00',
     partySize: 4,
     status: 'pending',
+    customerName: 'Maria Oliveira',
+    customerEmail: 'maria.oliveira@example.com',
+    customerPhone: '(11) 91234-5678',
   },
   {
     id: '103',
@@ -34,6 +39,35 @@ const mockReservations: Reservation[] = [
     partySize: 3,
     status: 'canceled',
     notes: 'Aniversário',
+    customerName: 'Pedro Santos',
+    customerEmail: 'pedro.santos@example.com',
+    customerPhone: '(11) 95555-6666',
+  },
+  {
+    id: '104',
+    restaurantId: '1',
+    restaurantName: 'Bella Italia',
+    restaurantImage: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cmVzdGF1cmFudHxlbnwwfHwwfHx8MA%3D%3D',
+    date: '18/05/2023',
+    time: '20:30',
+    partySize: 5,
+    status: 'pending',
+    customerName: 'Ana Rodrigues',
+    customerEmail: 'ana.rodrigues@example.com',
+    customerPhone: '(11) 98888-7777',
+  },
+  {
+    id: '105',
+    restaurantId: '1',
+    restaurantName: 'Bella Italia',
+    restaurantImage: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cmVzdGF1cmFudHxlbnwwfHwwfHx8MA%3D%3D',
+    date: '20/05/2023',
+    time: '19:00',
+    partySize: 2,
+    status: 'confirmed',
+    customerName: 'Lucas Ferreira',
+    customerEmail: 'lucas.ferreira@example.com',
+    customerPhone: '(11) 97777-8888',
   },
 ];
 
@@ -70,6 +104,34 @@ export const cancelReservation = (reservationId: string): Promise<boolean> => {
       
       if (reservationIndex >= 0) {
         mockReservations[reservationIndex].status = 'canceled';
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    }, 500);
+  });
+};
+
+// Admin specific functions
+export const getRestaurantReservations = (restaurantId: string): Promise<Reservation[]> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const restaurantReservations = mockReservations.filter(r => r.restaurantId === restaurantId);
+      resolve([...restaurantReservations]);
+    }, 500);
+  });
+};
+
+export const updateReservationStatus = (
+  reservationId: string, 
+  status: 'pending' | 'confirmed' | 'canceled'
+): Promise<boolean> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const reservationIndex = mockReservations.findIndex(r => r.id === reservationId);
+      
+      if (reservationIndex >= 0) {
+        mockReservations[reservationIndex].status = status;
         resolve(true);
       } else {
         resolve(false);

@@ -4,6 +4,8 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
+  role?: 'user' | 'admin'; // Added role field
+  restaurantId?: string; // If admin, which restaurant they manage
 }
 
 export interface Restaurant {
@@ -33,4 +35,7 @@ export interface Reservation {
   partySize: number;
   status: 'pending' | 'confirmed' | 'canceled';
   notes?: string;
+  customerName?: string; // Added for admin view
+  customerPhone?: string; // Added for admin view
+  customerEmail?: string; // Added for admin view
 }

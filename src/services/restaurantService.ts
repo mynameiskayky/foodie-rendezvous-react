@@ -1,4 +1,3 @@
-
 import { Restaurant } from '@/types';
 
 // Dados simulados de restaurantes
@@ -180,6 +179,17 @@ export const searchRestaurants = (query: string): Promise<Restaurant[]> => {
       );
       
       resolve(results);
+    }, 300);
+  });
+};
+
+// New function to get a restaurant by its admin user id
+export const getRestaurantByAdminId = (adminId: string): Promise<Restaurant | null> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      // In a real app, we would lookup the restaurant by the admin's ID in the database
+      // For now, returning the first restaurant as a mock
+      resolve(mockRestaurants[0]);
     }, 300);
   });
 };

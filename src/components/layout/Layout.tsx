@@ -10,10 +10,18 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { isAuthenticated, user, logout } = useAuth();
+  
+  // Check if the user is an admin
+  const isAdmin = user?.role === 'admin';
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar isAuthenticated={isAuthenticated} user={user ?? undefined} onLogout={logout} />
+      <Navbar 
+        isAuthenticated={isAuthenticated} 
+        user={user ?? undefined} 
+        onLogout={logout} 
+        isAdmin={isAdmin} 
+      />
       <main className="flex-1">{children}</main>
       <Footer />
     </div>

@@ -10,6 +10,7 @@ import HomePage from "@/pages/HomePage";
 import RestaurantsPage from "@/pages/RestaurantsPage";
 import RestaurantDetailPage from "@/pages/RestaurantDetailPage";
 import MyReservationsPage from "@/pages/MyReservationsPage";
+import AdminDashboardPage from "@/pages/AdminDashboardPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import NotFound from "./pages/NotFound";
@@ -29,6 +30,7 @@ const App = () => (
               <Route path="/restaurantes" element={<RestaurantsPage />} />
               <Route path="/restaurante/:id" element={<RestaurantDetailPage />} />
               <Route path="/minhas-reservas" element={<MyReservationsPage />} />
+              <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/cadastro" element={<RegisterPage />} />
               <Route path="*" element={<NotFound />} />
