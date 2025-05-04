@@ -17,6 +17,7 @@ const mockRestaurants: Restaurant[] = [
       closes: '23:00',
     },
     featured: true,
+    ownerId: '1'
   },
   {
     id: '2',
@@ -183,13 +184,44 @@ export const searchRestaurants = (query: string): Promise<Restaurant[]> => {
   });
 };
 
-// New function to get a restaurant by its admin user id
+// Get restaurant by admin ID
 export const getRestaurantByAdminId = (adminId: string): Promise<Restaurant | null> => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      // In a real app, we would lookup the restaurant by the admin's ID in the database
-      // For now, returning the first restaurant as a mock
-      resolve(mockRestaurants[0]);
+      const restaurant = mockRestaurants.find(r => r.ownerId === adminId) || null;
+      resolve(restaurant);
     }, 300);
+  });
+};
+
+// Create a new restaurant
+export const createRestaurant = (data: Omit<Restaurant, 'id' | 'rating'>): Promise<Restaurant> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const newRestaurant: Restaurant = {
+        ...data,
+        id: `rest-${Date.now()}`,
+        rating: 0, // New restaurants start with no rating
+      };
+      
+      mockRestaurants.push(newRestaurant);
+      resolve(newRestaurant);
+    }, 800);
+  });
+};
+
+// Update restaurant details
+export const updateRestaurant = (id: string, data: Partial<Restaurant>): Promise<Restaurant> => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const index = mockRestaurants.findIndex(r => r.id === id);
+      
+      if (index >= 0) {
+        mockRestaurants[index] = { ...mockRestaurants[index], ...data };
+        resolve(mockRestaurants[index]);
+      } else {
+        reject(new Error('Restaurante não encontrado'));
+      }
+    }, 500);
   });
 };

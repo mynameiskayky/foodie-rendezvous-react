@@ -1,91 +1,46 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
-import { Restaurant } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 import { getRestaurantById } from '@/services/restaurantService';
 import { createReservation } from '@/services/reservationService';
-import { useAuth } from '@/context/AuthContext';
-import { CalendarCheck } from 'lucide-react';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-
-const formSchema = z.object({
-  date: z.string().min(1, 'Data é obrigatória'),
-  time: z.string().min(1, 'Horário é obrigatório'),
-  partySize: z.string().transform(val => parseInt(val, 10))
-    .refine(val => !isNaN(val) && val > 0 && val <= 20, 'Número de pessoas deve estar entre 1 e 20'),
-  notes: z.string().optional(),
-});
+import { Restaurant } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Calendar as CalendarIcon, Clock, MapPin, Phone, DollarSign, Mail, UserRound } from 'lucide-react';
 
 const RestaurantDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [reservationDialogOpen, setReservationDialogOpen] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [time, setTime] = useState('19:00');
+  const [partySize, setPartySize] = useState('2');
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      date: '',
-      time: '',
-      partySize: '2',
-      notes: '',
-    },
-  });
-
-  const availableTimes = ['18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30'];
 
   useEffect(() => {
     const fetchRestaurant = async () => {
       if (!id) return;
-
-      setIsLoading(true);
+      
       try {
         const data = await getRestaurantById(id);
-        if (data) {
-          setRestaurant(data);
-        } else {
-          toast({
-            variant: 'destructive',
-            title: 'Restaurante não encontrado',
-            description: 'O restaurante que você está procurando não existe.',
-          });
-          navigate('/restaurantes');
-        }
+        setRestaurant(data);
       } catch (error) {
-        console.error('Erro ao buscar dados do restaurante:', error);
+        console.error('Error fetching restaurant:', error);
         toast({
           variant: 'destructive',
-          title: 'Erro ao carregar dados',
-          description: 'Não foi possível carregar as informações do restaurante.',
+          title: 'Erro',
+          description: 'Não foi possível carregar os dados do restaurante.',
         });
       } finally {
         setIsLoading(false);
@@ -93,88 +48,96 @@ const RestaurantDetailPage = () => {
     };
 
     fetchRestaurant();
-  }, [id, navigate, toast]);
+  }, [id, toast]);
 
-  const renderPriceLevel = (level: number) => {
-    return Array(4)
-      .fill(0)
-      .map((_, index) => (
-        <span
-          key={index}
-          className={`${
-            index < level ? 'text-restaurant-secondary' : 'text-gray-300'
-          }`}
-        >
-          $
-        </span>
-      ));
+  const generateTimeSlots = () => {
+    if (!restaurant) return [];
+    
+    const { opens, closes } = restaurant.openingHours;
+    const slots = [];
+    
+    // Convert string times to hour numbers
+    const startHour = parseInt(opens.split(':')[0], 10);
+    const endHour = parseInt(closes.split(':')[0], 10);
+    
+    // Generate slots every 30 minutes
+    for (let hour = startHour; hour <= endHour; hour++) {
+      slots.push(`${hour}:00`);
+      if (hour !== endHour) slots.push(`${hour}:30`);
+    }
+    
+    return slots;
   };
 
-  const handleMakeReservation = () => {
+  const handleReservation = async () => {
     if (!isAuthenticated) {
       toast({
-        title: 'Autenticação necessária',
-        description: 'Você precisa estar logado para fazer uma reserva.',
+        title: 'Login Necessário',
+        description: 'Faça login para realizar uma reserva.',
       });
       navigate('/login');
       return;
     }
     
-    setReservationDialogOpen(true);
-  };
-
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!restaurant) return;
-
+    if (!restaurant || !date) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Por favor, selecione uma data para sua reserva.',
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
     try {
+      const formattedDate = format(date, 'dd/MM/yyyy', { locale: ptBR });
+      
       await createReservation({
         restaurantId: restaurant.id,
         restaurantName: restaurant.name,
         restaurantImage: restaurant.image,
-        date: values.date,
-        time: values.time,
-        partySize: values.partySize,
-        notes: values.notes,
+        date: formattedDate,
+        time,
+        partySize: parseInt(partySize, 10),
+        notes,
+        customerName: user?.name,
+        customerEmail: user?.email,
+        customerPhone: user?.phone,
       });
       
       toast({
-        title: 'Reserva realizada com sucesso!',
-        description: 'Sua reserva foi enviada ao restaurante.',
+        title: 'Reserva solicitada',
+        description: 'Sua reserva foi solicitada com sucesso! Aguarde a confirmação do restaurante.',
       });
       
-      setReservationDialogOpen(false);
       navigate('/minhas-reservas');
     } catch (error) {
-      console.error('Erro ao criar reserva:', error);
+      console.error('Error creating reservation:', error);
       toast({
         variant: 'destructive',
-        title: 'Erro ao fazer reserva',
-        description: 'Não foi possível concluir sua reserva. Por favor, tente novamente.',
+        title: 'Erro',
+        description: 'Não foi possível processar sua reserva.',
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen container mx-auto px-6 py-12">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-          <p className="mt-4">Carregando informações do restaurante...</p>
-        </div>
+      <div className="container mx-auto px-4 py-8 flex justify-center">
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
       </div>
     );
   }
 
   if (!restaurant) {
     return (
-      <div className="min-h-screen container mx-auto px-6 py-12">
+      <div className="container mx-auto px-4 py-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Restaurante não encontrado</h1>
-          <p>O restaurante que você está procurando não existe.</p>
-          <Button 
-            onClick={() => navigate('/restaurantes')}
-            className="mt-4 bg-restaurant-primary hover:bg-restaurant-primary/90"
-          >
+          <h2 className="text-2xl font-bold">Restaurante não encontrado</h2>
+          <Button onClick={() => navigate('/restaurantes')} className="mt-4">
             Ver todos os restaurantes
           </Button>
         </div>
@@ -182,245 +145,135 @@ const RestaurantDetailPage = () => {
     );
   }
 
+  const getPriceLevelDisplay = (level: number) => {
+    return Array(level).fill('$').join('');
+  };
+
   return (
-    <div className="min-h-screen">
-      {/* Restaurant Hero */}
-      <div 
-        className="h-[400px] bg-cover bg-center relative"
-        style={{ backgroundImage: `url(${restaurant.image})` }}
-      >
-        <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-        <div className="container mx-auto px-6 py-12 relative h-full flex items-end">
-          <div className="text-white">
-            <h1 className="text-4xl font-bold mb-2">{restaurant.name}</h1>
-            <div className="flex items-center space-x-4 mb-4">
-              <div className="flex items-center">
-                <span className="text-restaurant-secondary mr-1">★</span>
-                <span>{restaurant.rating.toFixed(1)}</span>
-              </div>
-              <span className="text-white/80">•</span>
-              <span>{restaurant.cuisine}</span>
-              <span className="text-white/80">•</span>
-              <div className="text-sm">{renderPriceLevel(restaurant.priceLevel)}</div>
-            </div>
-            <p className="text-white/90">{restaurant.address}</p>
-          </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="relative h-64 md:h-80 rounded-xl overflow-hidden mb-8">
+          <img
+            src={restaurant.image}
+            alt={restaurant.name}
+            className="w-full h-full object-cover"
+          />
         </div>
-      </div>
 
-      {/* Restaurant Details */}
-      <div className="container mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            <div className="mb-10">
-              <h2 className="text-2xl font-bold mb-4">Sobre o restaurante</h2>
-              <p className="text-gray-700 mb-6">{restaurant.description}</p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-                <div>
-                  <h3 className="font-semibold mb-2">Horário de funcionamento</h3>
-                  <p>Abre às {restaurant.openingHours.opens} e fecha às {restaurant.openingHours.closes}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-2">Contato</h3>
-                  <p>{restaurant.phone}</p>
-                </div>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-2">
+            <h1 className="text-3xl font-bold mb-2">{restaurant.name}</h1>
             
-            <div className="mb-10">
-              <h2 className="text-2xl font-bold mb-4">Menu</h2>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="grid gap-6">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3">Entradas</h3>
-                      <div className="space-y-4">
-                        <div className="flex justify-between">
-                          <div>
-                            <h4 className="font-medium">Bruschetta</h4>
-                            <p className="text-sm text-gray-500">Tomate, alho, manjericão e azeite</p>
-                          </div>
-                          <div className="font-medium">R$ 25</div>
-                        </div>
-                        <div className="flex justify-between">
-                          <div>
-                            <h4 className="font-medium">Carpaccio</h4>
-                            <p className="text-sm text-gray-500">Fatias finas de carne crua com temperos</p>
-                          </div>
-                          <div className="font-medium">R$ 40</div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3">Pratos Principais</h3>
-                      <div className="space-y-4">
-                        <div className="flex justify-between">
-                          <div>
-                            <h4 className="font-medium">Fettuccine Alfredo</h4>
-                            <p className="text-sm text-gray-500">Massa fresca com molho cremoso</p>
-                          </div>
-                          <div className="font-medium">R$ 55</div>
-                        </div>
-                        <div className="flex justify-between">
-                          <div>
-                            <h4 className="font-medium">Risoto de Cogumelos</h4>
-                            <p className="text-sm text-gray-500">Arroz arbóreo, cogumelos frescos e parmesão</p>
-                          </div>
-                          <div className="font-medium">R$ 60</div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3">Sobremesas</h3>
-                      <div className="space-y-4">
-                        <div className="flex justify-between">
-                          <div>
-                            <h4 className="font-medium">Tiramisù</h4>
-                            <p className="text-sm text-gray-500">Clássica sobremesa italiana</p>
-                          </div>
-                          <div className="font-medium">R$ 30</div>
-                        </div>
-                        <div className="flex justify-between">
-                          <div>
-                            <h4 className="font-medium">Panna Cotta</h4>
-                            <p className="text-sm text-gray-500">Com calda de frutas vermelhas</p>
-                          </div>
-                          <div className="font-medium">R$ 28</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="flex items-center flex-wrap gap-2 mb-4">
+              <span className="bg-purple-100 text-purple-800 text-sm font-medium px-2.5 py-0.5 rounded-full">
+                {restaurant.cuisine}
+              </span>
+              <span className="bg-yellow-100 text-yellow-800 text-sm font-medium px-2.5 py-0.5 rounded-full flex items-center">
+                <span className="mr-1">★</span> {restaurant.rating}
+              </span>
+              <span className="bg-green-100 text-green-800 text-sm font-medium px-2.5 py-0.5 rounded-full">
+                {getPriceLevelDisplay(restaurant.priceLevel)}
+              </span>
+            </div>
+
+            <p className="text-gray-700 mb-6">{restaurant.description}</p>
+
+            <div className="space-y-4 mb-8">
+              <div className="flex items-start">
+                <MapPin className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />
+                <span>{restaurant.address}</span>
+              </div>
+              <div className="flex items-center">
+                <Phone className="h-5 w-5 text-gray-500 mr-2" />
+                <span>{restaurant.phone}</span>
+              </div>
+              <div className="flex items-center">
+                <Clock className="h-5 w-5 text-gray-500 mr-2" />
+                <span>Aberto das {restaurant.openingHours.opens} às {restaurant.openingHours.closes}</span>
+              </div>
             </div>
           </div>
 
-          {/* Reservation Sidebar */}
-          <div>
-            <div className="sticky top-6">
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-bold mb-4">Faça sua reserva</h3>
-                  <p className="text-sm text-gray-500 mb-6">
-                    Selecione uma data e horário para fazer sua reserva no {restaurant.name}
-                  </p>
-                  
-                  <Button 
-                    onClick={handleMakeReservation}
-                    className="w-full bg-restaurant-primary hover:bg-restaurant-primary/90 mb-4"
-                  >
-                    <CalendarCheck className="mr-2 h-4 w-4" />
-                    Reservar mesa
-                  </Button>
-                  
-                  <div className="text-sm text-gray-500">
-                    <p>Horário de funcionamento:</p>
-                    <p className="font-medium">{restaurant.openingHours.opens} - {restaurant.openingHours.closes}</p>
-                  </div>
-                </CardContent>
-              </Card>
+          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <h3 className="text-xl font-bold mb-4">Fazer uma reserva</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Data</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {date ? format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : <span>Escolha uma data</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={date}
+                      onSelect={setDate}
+                      initialFocus
+                      disabled={(date) => date < new Date(Date.now() - 86400000)}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Horário</label>
+                <Select value={time} onValueChange={setTime}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um horário" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {generateTimeSlots().map((slot) => (
+                      <SelectItem key={slot} value={slot}>
+                        {slot}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Pessoas</label>
+                <Select value={partySize} onValueChange={setPartySize}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Número de pessoas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                      <SelectItem key={num} value={num.toString()}>
+                        {num} {num === 1 ? 'pessoa' : 'pessoas'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Observações</label>
+                <Textarea
+                  placeholder="Alguma preferência ou necessidade especial?"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
+
+              <Button 
+                onClick={handleReservation} 
+                disabled={isSubmitting}
+                className="w-full bg-restaurant-primary hover:bg-restaurant-primary/90"
+              >
+                {isSubmitting ? 'Processando...' : 'Reservar Mesa'}
+              </Button>
             </div>
           </div>
         </div>
       </div>
-      
-      {/* Reservation Dialog */}
-      <Dialog open={reservationDialogOpen} onOpenChange={setReservationDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Reservar mesa - {restaurant.name}</DialogTitle>
-          </DialogHeader>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Data</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="time"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Horário</FormLabel>
-                      <FormControl>
-                        <select 
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          {...field}
-                        >
-                          <option value="" disabled>Selecione...</option>
-                          {availableTimes.map(time => (
-                            <option key={time} value={time}>{time}</option>
-                          ))}
-                        </select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="partySize"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Número de pessoas</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="1" max="20" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Observações (opcional)</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Informações adicionais ou solicitações especiais..." 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setReservationDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button 
-                  type="submit" 
-                  className="bg-restaurant-primary hover:bg-restaurant-primary/90"
-                >
-                  Confirmar Reserva
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

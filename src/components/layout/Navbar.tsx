@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, User, LogIn } from 'lucide-react';
+import { Menu, User, LogIn, Settings } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,9 +19,10 @@ interface NavbarProps {
     avatar?: string;
   };
   onLogout: () => void;
+  isAdmin?: boolean; // Added isAdmin prop
 }
 
-const Navbar = ({ isAuthenticated, user, onLogout }: NavbarProps) => {
+const Navbar = ({ isAuthenticated, user, onLogout, isAdmin = false }: NavbarProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -74,6 +75,22 @@ const Navbar = ({ isAuthenticated, user, onLogout }: NavbarProps) => {
                   <DropdownMenuItem asChild>
                     <Link to="/minhas-reservas">Minhas Reservas</Link>
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/dashboard">Painel do Restaurante</Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  {!isAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link to="/meu-restaurante/criar">Criar Restaurante</Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={onLogout}>Sair</DropdownMenuItem>
                 </DropdownMenuContent>
@@ -142,6 +159,24 @@ const Navbar = ({ isAuthenticated, user, onLogout }: NavbarProps) => {
                   >
                     Meu Perfil
                   </Link>
+                  {isAdmin && (
+                    <Link
+                      to="/admin/dashboard"
+                      className="block px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Painel do Restaurante
+                    </Link>
+                  )}
+                  {!isAdmin && (
+                    <Link
+                      to="/meu-restaurante/criar"
+                      className="block px-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Criar Restaurante
+                    </Link>
+                  )}
                   <button
                     onClick={() => {
                       onLogout();

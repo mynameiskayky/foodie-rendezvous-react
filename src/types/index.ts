@@ -4,8 +4,11 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
-  role?: 'user' | 'admin'; // Added role field
+  role?: 'user' | 'admin';
   restaurantId?: string; // If admin, which restaurant they manage
+  phone?: string;
+  address?: string;
+  bio?: string;
 }
 
 export interface Restaurant {
@@ -23,6 +26,7 @@ export interface Restaurant {
     closes: string;
   };
   featured?: boolean;
+  ownerId?: string; // Added to link restaurant with owner
 }
 
 export interface Reservation {

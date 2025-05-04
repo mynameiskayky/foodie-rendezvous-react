@@ -7,6 +7,9 @@ const mockUser: User = {
   name: 'João Silva',
   email: 'joao.silva@exemplo.com',
   avatar: 'https://i.pravatar.cc/150?img=3',
+  phone: '(11) 98765-4321',
+  address: 'Rua das Flores, 123 - São Paulo',
+  bio: 'Apaixonado por gastronomia e boas experiências.',
 };
 
 // Simulação de login com oauth providers
@@ -80,4 +83,47 @@ export const getCurrentUser = (): Promise<User | null> => {
 
 export const isAuthenticated = (): boolean => {
   return !!localStorage.getItem('auth_token');
+};
+
+// New methods for user profile management
+export const updateUserProfile = (userData: Partial<User>): Promise<User> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const currentUser = localStorage.getItem('user');
+      if (currentUser) {
+        const updatedUser = { ...JSON.parse(currentUser), ...userData };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        resolve(updatedUser);
+      } else {
+        resolve(mockUser);
+      }
+    }, 800);
+  });
+};
+
+// Make a user an admin of a restaurant
+export const assignRestaurantToUser = (userId: string, restaurantId: string): Promise<User> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const currentUser = localStorage.getItem('user');
+      if (currentUser) {
+        const user = JSON.parse(currentUser);
+        const updatedUser = { 
+          ...user, 
+          role: 'admin', 
+          restaurantId 
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        resolve(updatedUser);
+      } else {
+        const updatedMockUser = { 
+          ...mockUser, 
+          role: 'admin', 
+          restaurantId 
+        };
+        localStorage.setItem('user', JSON.stringify(updatedMockUser));
+        resolve(updatedMockUser);
+      }
+    }, 800);
+  });
 };

@@ -10,6 +10,8 @@ import HomePage from "@/pages/HomePage";
 import RestaurantsPage from "@/pages/RestaurantsPage";
 import RestaurantDetailPage from "@/pages/RestaurantDetailPage";
 import MyReservationsPage from "@/pages/MyReservationsPage";
+import ProfilePage from "@/pages/ProfilePage";
+import CreateRestaurantPage from "@/pages/CreateRestaurantPage";
 import AdminDashboardPage from "@/pages/AdminDashboardPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
@@ -30,6 +32,8 @@ const App = () => (
               <Route path="/restaurantes" element={<RestaurantsPage />} />
               <Route path="/restaurante/:id" element={<RestaurantDetailPage />} />
               <Route path="/minhas-reservas" element={<MyReservationsPage />} />
+              <Route path="/perfil" element={<ProfilePage />} />
+              <Route path="/meu-restaurante/criar" element={<CreateRestaurantPage />} />
               <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/cadastro" element={<RegisterPage />} />
