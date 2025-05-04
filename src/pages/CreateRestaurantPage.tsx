@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { 
-  Restaurant, 
+  Utensils, 
   MapPin, 
   Phone, 
   Clock, 
@@ -136,7 +136,7 @@ const CreateRestaurantPage = () => {
                     Nome do Restaurante *
                   </label>
                   <div className="relative">
-                    <Restaurant className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Utensils className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="name"
                       name="name"

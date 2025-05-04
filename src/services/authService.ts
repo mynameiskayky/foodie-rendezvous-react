@@ -108,17 +108,17 @@ export const assignRestaurantToUser = (userId: string, restaurantId: string): Pr
       const currentUser = localStorage.getItem('user');
       if (currentUser) {
         const user = JSON.parse(currentUser);
-        const updatedUser = { 
+        const updatedUser: User = { 
           ...user, 
-          role: 'admin', 
+          role: 'admin' as const, 
           restaurantId 
         };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         resolve(updatedUser);
       } else {
-        const updatedMockUser = { 
+        const updatedMockUser: User = { 
           ...mockUser, 
-          role: 'admin', 
+          role: 'admin' as const, 
           restaurantId 
         };
         localStorage.setItem('user', JSON.stringify(updatedMockUser));
